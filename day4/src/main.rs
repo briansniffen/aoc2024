@@ -45,11 +45,11 @@ fn part2(data: &str) -> u32 {
     let grid = parse_number_grid::<i32, char>(data);
     //    for (a, val) in grid.iter() {
     grid.par_iter()
-        .map(|(a, val)| {
+        .map(|(&a, &val)| {
             let mut crosses = 0;
-            if *val == 'A' {
+            if val == 'A' {
                 for dir in directions {
-                    if grid.get(&(*a + dir)) == Some(&'M') && grid.get(&(*a - dir)) == Some(&'S') {
+                    if grid.get(&(a + dir)) == Some(&'M') && grid.get(&(a - dir)) == Some(&'S') {
                         crosses += 1;
                         if crosses == 2 {
                             return 1;
