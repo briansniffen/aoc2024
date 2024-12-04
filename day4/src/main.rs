@@ -1,32 +1,40 @@
 use aochelpers::{get_daily_input, parse_number_grid, Coordinate, Direction::*};
-// use std::collections::HashMap;
+use code_timing_macros::time_function;
+use rayon::prelude::*;
 use std::error::Error;
 
+#[time_function]
 fn part1(data: &str) -> u32 {
     let directions = [
         NorthWest, North, NorthEast, East, SouthEast, South, SouthWest, West,
     ];
     let mut total = 0;
     let grid = parse_number_grid::<i32, char>(data);
-    for dir in directions {
-        for (x, val) in grid.iter() {
-            if *val == 'X' {
-                let m = x.neighbour(dir);
-                if grid.get(&m) == Some(&'M') {
-                    let a = m.neighbour(dir);
-                    if grid.get(&a) == Some(&'A') {
-                        let s = a.neighbour(dir);
-                        if grid.get(&s) == Some(&'S') {
-                            total = total + 1;
+    // for (x,val) in grid.iter {
+    total += grid
+        .par_iter()
+        .map(|(x, val)| {
+            for dir in directions {
+                if *val == 'X' {
+                    let m = x.neighbour(dir);
+                    if grid.get(&m) == Some(&'M') {
+                        let a = m.neighbour(dir);
+                        if grid.get(&a) == Some(&'A') {
+                            let s = a.neighbour(dir);
+                            if grid.get(&s) == Some(&'S') {
+                                return 1;
+                            }
                         }
                     }
                 }
             }
-        }
-    }
+            0
+        })
+        .sum::<u32>();
     total
 }
 
+#[time_function]
 fn part2(data: &str) -> u32 {
     let directions = [
         Coordinate { x: -1, y: -1 },
@@ -34,22 +42,24 @@ fn part2(data: &str) -> u32 {
         Coordinate { x: 1, y: -1 },
         Coordinate { x: 1, y: 1 },
     ];
-    let mut total = 0;
     let grid = parse_number_grid::<i32, char>(data);
-    for (a, val) in grid.iter() {
-        let mut crosses = 0;
-        if *val == 'A' {
-            for dir in directions {
-                if grid.get(&(*a + dir)) == Some(&'M') && grid.get(&(*a - dir)) == Some(&'S') {
-                    crosses += 1;
+    //    for (a, val) in grid.iter() {
+    grid.par_iter()
+        .map(|(a, val)| {
+            let mut crosses = 0;
+            if *val == 'A' {
+                for dir in directions {
+                    if grid.get(&(*a + dir)) == Some(&'M') && grid.get(&(*a - dir)) == Some(&'S') {
+                        crosses += 1;
+                        if crosses == 2 {
+                            return 1;
+                        };
+                    }
                 }
             }
-        }
-        if crosses == 2 {
-            total += 1
-        };
-    }
-    total
+            0
+        })
+        .sum::<u32>()
 }
 
 fn main() -> Result<(), Box<dyn Error>> {

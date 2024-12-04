@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 aochelpers = "0.7.1"
+code-timing-macros = "0.0.5"
+rayon = "1.10.0"
