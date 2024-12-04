@@ -8,30 +8,28 @@ fn part1(data: &str) -> u32 {
     let directions = [
         NorthWest, North, NorthEast, East, SouthEast, South, SouthWest, West,
     ];
-    let mut total = 0;
     let grid = parse_number_grid::<i32, char>(data);
-    // for (x,val) in grid.iter {
-    total += grid
-        .par_iter()
+    // for (x, val) in grid.iter() {
+    grid.par_iter()
         .map(|(x, val)| {
-            for dir in directions {
-                if *val == 'X' {
+            let mut tot = 0;
+            if *val == 'X' {
+                for dir in directions {
                     let m = x.neighbour(dir);
                     if grid.get(&m) == Some(&'M') {
                         let a = m.neighbour(dir);
                         if grid.get(&a) == Some(&'A') {
                             let s = a.neighbour(dir);
                             if grid.get(&s) == Some(&'S') {
-                                return 1;
+                                tot += 1;
                             }
                         }
                     }
                 }
             }
-            0
+            tot
         })
-        .sum::<u32>();
-    total
+        .sum::<u32>()
 }
 
 #[time_function]
