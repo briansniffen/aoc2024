@@ -1,7 +1,7 @@
 use aochelpers::{get_daily_input, parse_number_grid, Coordinate, Direction::*};
 use code_timing_macros::time_function;
 use rayon::prelude::*;
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
 #[time_function]
 fn part1(data: &str) -> u32 {
@@ -9,20 +9,21 @@ fn part1(data: &str) -> u32 {
         NorthWest, North, NorthEast, East, SouthEast, South, SouthWest, West,
     ];
     let grid = parse_number_grid::<i32, char>(data);
-    // for (x, val) in grid.iter() {
+    let goal = "XMAS".chars().collect::<Vec<char>>();
     grid.par_iter()
         .map(|(x, val)| {
             let mut tot = 0;
-            if *val == 'X' {
+            if *val == goal[0] {
                 for dir in directions {
-                    let m = x.neighbour(dir);
-                    if grid.get(&m) == Some(&'M') {
-                        let a = m.neighbour(dir);
-                        if grid.get(&a) == Some(&'A') {
-                            let s = a.neighbour(dir);
-                            if grid.get(&s) == Some(&'S') {
+                    let mut pointer: Coordinate<i32> = *x;
+                    for i in 1..goal.len() {
+                        pointer = pointer.neighbour(dir);
+                        if grid.get(&pointer) == Some(&goal[i]) {
+                            if i == goal.len() - 1 {
                                 tot += 1;
                             }
+                        } else {
+                            break;
                         }
                     }
                 }
@@ -32,32 +33,56 @@ fn part1(data: &str) -> u32 {
         .sum::<u32>()
 }
 
+//rotate a grid expressed as a hashmap from coordinates to chars 90°
+fn rotate_grid(
+    grid: std::collections::HashMap<Coordinate<i32>, char>,
+) -> Box<dyn Iterator<Item = HashMap<Coordinate<i32>, char>> + 'static> {
+    let width = grid.keys().map(|c| c.x).max().unwrap();
+    let height = grid.keys().map(|c| c.y).max().unwrap();
+    Box::new(Box::new(0..4).map(move |rotation| {
+        let mut rotated = HashMap::new();
+        for (coord, char) in grid.iter() {
+            let new_coord = match rotation {
+                0 => coord.clone(),
+                1 => Coordinate {
+                    x: height - coord.y,
+                    y: coord.x,
+                },
+                2 => Coordinate {
+                    x: width - coord.x,
+                    y: height - coord.y,
+                },
+                3 => Coordinate {
+                    x: coord.y,
+                    y: width - coord.x,
+                },
+                _ => panic!("Invalid rotation"),
+            };
+            rotated.insert(new_coord, *char);
+        }
+        rotated
+    }))
+}
+
 #[time_function]
 fn part2(data: &str) -> u32 {
-    let directions = [
-        Coordinate { x: -1, y: -1 },
-        Coordinate { x: -1, y: 1 },
-        Coordinate { x: 1, y: -1 },
-        Coordinate { x: 1, y: 1 },
-    ];
+    let goal = parse_number_grid::<i32, char>("M.M\n.A.\nS.S");
+    let goals: Vec<HashMap<Coordinate<i32>,char>> = rotate_grid(goal).collect();
     let grid = parse_number_grid::<i32, char>(data);
-    //    for (a, val) in grid.iter() {
-    grid.par_iter()
-        .map(|(&a, &val)| {
-            let mut crosses = 0;
-            if val == 'A' {
-                for dir in directions {
-                    if grid.get(&(a + dir)) == Some(&'M') && grid.get(&(a - dir)) == Some(&'S') {
-                        crosses += 1;
-                        if crosses == 2 {
-                            return 1;
-                        };
+    let mut tot = 0;
+    for goal in goals.iter() {      
+        tot += grid.par_iter()
+            .map(|(&grid_coord, _grid_char)| {
+                for (&goal_coord, &goal_char) in goal.iter() {
+                    let target_coord = grid_coord + goal_coord;
+                    if goal_char != '.' && grid.get(&(target_coord)) != Some(&goal_char) {
+                        return 0;
                     }
                 }
-            }
-            0
-        })
-        .sum::<u32>()
+                return 1;
+            }).sum::<u32>();
+    }
+    tot
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
