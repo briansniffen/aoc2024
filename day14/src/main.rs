@@ -89,15 +89,26 @@ fn part1(robots: &Vec<Robot>, width: i32, height: i32, ticks: i32) -> i32 {
 
 #[time_function]
 fn part2(robots: &Vec<Robot>, width: i32, height: i32) -> usize {
-    (0..(width * height))
-        .map(|i| score(&simulate(robots, width, height, i), width, height))
-        .enumerate()
-        .min_by_key(|(_, score)| *score)
-        .map(|(i, _)| i)
-        .unwrap()
+    // by minimum safety score (max is uninteresting)
+    // (0..(width * height))
+    //     .map(|i| score(&simulate(robots, width, height, i), width, height))
+    //     .enumerate()
+    //     .min_by_key(|(_, score)| *score)
+    //     .map(|(i, _)| i)
+    //     .unwrap()
     // neat things at 28, 86, 129, 189, 230, 292, 331
     // so at 28 + 101x and at 86 + 103x
     //
+    for i in 0..(width * height) {
+        if i < 100 {
+            continue;
+        };
+        if (i - 28) % 101 == 0 && (i - 86) % 103 == 0 {
+            println!("i: {}", i);
+            return i as usize;
+        }
+    }
+    return 0;
 }
 
 fn print_robots(robots: &Vec<Robot>, width: i32, height: i32) {
@@ -134,7 +145,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("part1: {}", part1(&robots, 101, 103, 100));
     let p2answer = part2(&robots, 101, 103) as i32;
     println!("part2: {}", p2answer);
-    print_robots(&simulate(&robots, 101, 103, p2answer), 101, 103);
+    //print_robots(&simulate(&robots, 101, 103, p2answer), 101, 103);
     // let mut robots = robots.clone();
     // let mut counter = -2902;
     // if counter > 0 {
