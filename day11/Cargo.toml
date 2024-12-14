@@ -9,4 +9,3 @@ aochelpers = "0.7.1"
 [dependencies.code-timing-macros]
 version = "0.0.5"
 features = ["release"]
-
