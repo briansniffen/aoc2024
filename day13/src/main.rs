@@ -225,6 +225,6 @@ Prize: X=18641, Y=10279";
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(&TESTDATA), 0);
+        assert_eq!(part2(&TESTDATA), Ok(("", 875318608908)));
     }
 }

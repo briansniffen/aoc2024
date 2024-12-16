@@ -189,6 +189,6 @@ p=9,5 v=-3,-3";
     fn test_part2() {
         let (i, robots) = parse_robots(&TESTDATA).unwrap();
         assert_eq!(i, "");
-        assert_eq!(part2(&robots), 0);
+        assert_eq!(part2(&robots, 11, 7), 0);
     }
 }
