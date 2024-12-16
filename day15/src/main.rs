@@ -5,9 +5,6 @@ use std::error::Error;
 use std::io;
 use std::io::prelude::*;
 
-//part 1 good answer: 1414416, but now getting 1406374
-//part 2 bad answers: 14100375 1410037
-
 fn parse_data(data: &str) -> (HashMap<Coordinate<i32>, char>, Vec<Coordinate<i32>>) {
     let (map_data, prog_data) = data.split_once("\n\n").unwrap();
     let map = parse_number_grid(map_data);
@@ -30,25 +27,6 @@ fn score(grid: HashMap<Coordinate<i32>, char>) -> u32 {
         .map(|(coord, _)| coord.x + 100 * coord.y)
         .sum::<i32>() as u32
 }
-
-// n can_move(
-//     grid: &HashMap<Coordinate<i32>, char>,
-//     guy: &Coordinate<i32>,
-//     instruction: &Coordinate<i32>,
-// ) -> bool {
-//     if instruction == &(Coordinate { x: 0, y: 0 }) {
-//         return false;
-//     }
-//     let mut finger = guy.clone();
-//     loop {
-//         finger = finger + *instruction;
-//         if grid.get(&finger) == Some(&'#') {
-//             return false;
-//         } else if grid.get(&finger) == Some(&'.') {
-//             return true;
-//         }
-//     }
-// }
 
 fn move_guy(grid: &mut HashMap<Coordinate<i32>, char>, instruction: &Coordinate<i32>) {
     if instruction == &(Coordinate { x: 0, y: 0 }) {
@@ -140,7 +118,7 @@ fn print_grid(map: &HashMap<Coordinate<i32>, char>) {
 fn part1(data: &str) -> u32 {
     let (mut map, prog) = parse_data(data);
     for instruction in prog {
-        //print_grid(&map);
+        print_grid(&map);
         move_guy(&mut map, &instruction);
     }
     score(map)
@@ -189,7 +167,6 @@ fn broken(map: &HashMap<Coordinate<i32>, char>) -> bool {
                 y: coord.y,
             };
             if map[&coord2] != ']' {
-                //panic!("bad map at {:?}", coord);
                 return true;
             }
         }
