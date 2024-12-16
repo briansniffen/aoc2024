@@ -1,8 +1,12 @@
 use aochelpers::{get_daily_input, parse_number_grid, Coordinate};
 use code_timing_macros::time_function;
-//use rayon::prelude::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
+use std::io;
+use std::io::prelude::*;
+
+//part 1 good answer: 1414416, but now getting 1406374
+//part 2 bad answers: 14100375 1410037
 
 fn parse_data(data: &str) -> (HashMap<Coordinate<i32>, char>, Vec<Coordinate<i32>>) {
     let (map_data, prog_data) = data.split_once("\n\n").unwrap();
@@ -22,57 +26,100 @@ fn parse_data(data: &str) -> (HashMap<Coordinate<i32>, char>, Vec<Coordinate<i32
 
 fn score(grid: HashMap<Coordinate<i32>, char>) -> u32 {
     grid.iter()
-        .filter(|(_, char)| **char == 'O')
+        .filter(|(_, char)| **char == 'O' || **char == '[')
         .map(|(coord, _)| coord.x + 100 * coord.y)
         .sum::<i32>() as u32
 }
 
-fn can_move(
-    grid: &HashMap<Coordinate<i32>, char>,
-    guy: &Coordinate<i32>,
-    instruction: &Coordinate<i32>,
-) -> bool {
-    if instruction == &(Coordinate { x: 0, y: 0 }) {
-        return false;
-    }
-    let mut finger = guy.clone();
-    loop {
-        finger = finger + *instruction;
-        if grid.get(&finger) == Some(&'#') {
-            return false;
-        } else if grid.get(&finger) == Some(&'.') {
-            return true;
-        }
-    }
-}
+// n can_move(
+//     grid: &HashMap<Coordinate<i32>, char>,
+//     guy: &Coordinate<i32>,
+//     instruction: &Coordinate<i32>,
+// ) -> bool {
+//     if instruction == &(Coordinate { x: 0, y: 0 }) {
+//         return false;
+//     }
+//     let mut finger = guy.clone();
+//     loop {
+//         finger = finger + *instruction;
+//         if grid.get(&finger) == Some(&'#') {
+//             return false;
+//         } else if grid.get(&finger) == Some(&'.') {
+//             return true;
+//         }
+//     }
+// }
 
-fn move_guy(
-    grid: &mut HashMap<Coordinate<i32>, char>,
-    guy: &mut Coordinate<i32>,
-    instruction: &Coordinate<i32>,
-) {
+fn move_guy(grid: &mut HashMap<Coordinate<i32>, char>, instruction: &Coordinate<i32>) {
     if instruction == &(Coordinate { x: 0, y: 0 }) {
         return;
     }
-    let mut finger = guy.clone();
-    loop {
-        finger = finger + *instruction;
-        if grid.get(&finger) == Some(&'#') {
-            panic!("tried to move into a wall at {}", finger);
-        } else if grid.get(&finger) == Some(&'.') {
+    let guy = grid.iter().find(|(_, char)| **char == '@').unwrap().0;
+    let mut fingers: Vec<Coordinate<i32>> = vec![guy.clone()];
+    let mut to_move: Vec<Coordinate<i32>> = vec![];
+    let mut i = 10;
+    'scan: loop {
+        i -= 1;
+        if i < 0 {
             break;
-        } else if grid.get(&finger) == None {
-            panic!("walked off grid!");
+        };
+        let mut new_fingers = HashSet::new();
+        let mut drop_columns: Vec<Coordinate<i32>> = vec![];
+        for finger in &mut fingers {
+            to_move.push(*finger);
+            *finger = *finger + *instruction;
+            match grid.get(&finger) {
+                Some(&'#') => {
+                    // can't move, drop the whole plan
+                    return;
+                }
+                Some(&'.') => {
+                    // no more movement in this column
+                    if instruction.y != 0 {
+                        // vertical movement in part 2
+                        drop_columns.push(*finger);
+                    } else {
+                        // part 1, and all horizontal movement
+                        break 'scan;
+                    }
+                }
+                None => {
+                    panic!("walked off the grid!");
+                }
+                Some(&'[') => {
+                    // if we're going vertical, add column to the east
+                    if instruction.y != 0 {
+                        let mut new_finger = finger.clone();
+                        new_finger.x += 1;
+                        new_fingers.insert(new_finger);
+                    }
+                }
+                Some(&']') => {
+                    // if we're going vertical, add column to the west
+                    if instruction.y != 0 {
+                        let mut new_finger = finger.clone();
+                        new_finger.x -= 1;
+                        new_fingers.insert(new_finger);
+                    }
+                }
+                Some(_) => {}
+            }
+        }
+        for finger in new_fingers.into_iter() {
+            if !fingers.contains(&finger) {
+                fingers.push(finger)
+            }
+        }
+        fingers.retain(|finger| !drop_columns.contains(&finger));
+        if fingers.len() == 0 {
+            break 'scan;
         }
     }
-    loop {
-        grid.insert(finger, grid[&(finger - *instruction)]);
-        if grid[&finger] == '@' {
-            grid.insert(finger - *instruction, '.');
-            *guy = finger;
-            return;
-        } else {
-            finger = finger - *instruction;
+    while let Some(source) = to_move.pop() {
+        let dest = source + *instruction;
+        grid.insert(dest, grid[&source]);
+        if !to_move.contains(&(source - *instruction)) {
+            grid.insert(source, '.');
         }
     }
 }
@@ -97,20 +144,93 @@ fn print_grid(map: &HashMap<Coordinate<i32>, char>) {
 #[time_function]
 fn part1(data: &str) -> u32 {
     let (mut map, prog) = parse_data(data);
-    let start = map.iter().find(|(_, char)| **char == '@').unwrap().0;
-    let mut guy = start.clone();
     for instruction in prog {
-        if can_move(&map, &guy, &instruction) {
-            print_grid(&map);
-            move_guy(&mut map, &mut guy, &instruction);
-        }
+        //print_grid(&map);
+        move_guy(&mut map, &instruction);
     }
     score(map)
 }
 
+fn double_map(map: &HashMap<Coordinate<i32>, char>) -> HashMap<Coordinate<i32>, char> {
+    let mut out = HashMap::new();
+    for (coord, object) in map.iter() {
+        let new_coord = Coordinate {
+            x: coord.x * 2,
+            y: coord.y,
+        };
+        let new_coord2 = Coordinate {
+            x: coord.x * 2 + 1,
+            y: coord.y,
+        };
+        match object {
+            '.' => {
+                out.insert(new_coord, '.');
+                out.insert(new_coord2, '.');
+            }
+            '#' => {
+                out.insert(new_coord, '#');
+                out.insert(new_coord2, '#');
+            }
+            'O' => {
+                out.insert(new_coord, '[');
+                out.insert(new_coord2, ']');
+            }
+            '@' => {
+                out.insert(new_coord, '@');
+                out.insert(new_coord2, '.');
+            }
+            _ => panic!("unknown object {}", object),
+        };
+    }
+    out
+}
+
+fn broken(map: &HashMap<Coordinate<i32>, char>) -> bool {
+    let width = map.keys().map(|coord| coord.x).max().unwrap() + 1;
+    for (coord, c) in map {
+        if c == &'[' {
+            let coord2 = Coordinate {
+                x: coord.x + 1,
+                y: coord.y,
+            };
+            if map[&coord2] != ']' {
+                //panic!("bad map at {:?}", coord);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 #[time_function]
-fn part2(_data: &str) -> u32 {
-    0
+fn part2(data: &str) -> u32 {
+    let (small_map, prog) = parse_data(data);
+    let mut map = double_map(&small_map);
+    let mut counter = 0;
+    for instruction in prog {
+        counter += 1;
+        print_grid(&map);
+        if counter >= 2270 {
+            pause();
+        }
+        move_guy(&mut map, &instruction);
+        // if broken(&map) {
+        //     panic!("map broken at {counter}.");
+        // }
+    }
+    score(map)
+}
+
+fn pause() {
+    let mut stdin = io::stdin();
+    let mut stdout = io::stdout();
+
+    // We want the cursor to stay at the end of the line, so we print without a newline and flush manually.
+    write!(stdout, "Press any key to continue...").unwrap();
+    stdout.flush().unwrap();
+
+    // Read a single byte and discard
+    let _ = stdin.read(&mut [0u8]).unwrap();
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -166,6 +286,6 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(&TESTDATA), 0);
+        assert_eq!(part2(&BIGTEST), 9021);
     }
 }
