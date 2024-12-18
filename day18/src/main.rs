@@ -1,6 +1,5 @@
 use aochelpers::get_daily_input;
 use code_timing_macros::time_function;
-//use rayon::prelude::*;
 use pathfinding::prelude::*;
 use std::error::Error;
 
