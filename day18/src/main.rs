@@ -12,6 +12,7 @@ struct Map {
 }
 
 impl Map {
+    #[allow(dead_code)]
     fn print(&self) {
         let mut inv = self.grid.clone();
         inv.invert();
@@ -28,6 +29,20 @@ impl Map {
         let end = (width - 1, height - 1);
         Map { grid, start, end }
     }
+    fn from_string(data: &str, width: usize, height: usize, blocks: usize) -> Self {
+        let coords = parse_coords(&data);
+        Map::from_coords(&coords[0..blocks], width, height)
+    }
+
+    fn path_cost(&self) -> Option<usize> {
+        astar(
+            &self.start,
+            |p| self.grid.neighbours(*p).into_iter().map(|n| (n, 1)),
+            |p| self.grid.distance(*p, self.end),
+            |p| *p == self.end,
+        )
+        .and_then(|x| Some(x.1))
+    }
 }
 
 fn parse_coords(data: &str) -> Vec<(usize, usize)> {
@@ -41,21 +56,11 @@ fn parse_coords(data: &str) -> Vec<(usize, usize)> {
         .collect()
 }
 
-fn parse_input(data: &str, width: usize, height: usize, blocks: usize) -> Map {
-    let coords = parse_coords(&data);
-    Map::from_coords(&coords[0..blocks], width, height)
-}
-
 #[time_function]
 fn part1(data: &str, width: usize, height: usize, blocks: usize) -> usize {
-    let map = parse_input(data, width, height, blocks);
-    dijkstra(
-        &map.start,
-        |p| map.grid.neighbours(*p).into_iter().map(|n| (n, 1)),
-        |p| *p == map.end,
-    )
-    .expect("no path!")
-    .1
+    Map::from_string(data, width, height, blocks)
+        .path_cost()
+        .unwrap()
 }
 
 #[time_function]
@@ -63,13 +68,9 @@ fn part2(data: &str, width: usize, height: usize) -> (usize, usize) {
     let coords = parse_coords(&data);
     let indices = Vec::from_iter(0..coords.len() - 1);
     let i = indices.partition_point(|&i| {
-        let map = Map::from_coords(&coords[0..=i].to_vec(), width, height);
-        dijkstra(
-            &map.start,
-            |p| map.grid.neighbours(*p).into_iter().map(|n| (n, 1)),
-            |p| *p == map.end,
-        )
-        .is_some()
+        Map::from_coords(&coords[0..=i].to_vec(), width, height)
+            .path_cost()
+            .is_some()
     });
     coords[i]
 }
