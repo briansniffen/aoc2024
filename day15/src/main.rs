@@ -57,12 +57,7 @@ fn move_guy(grid: &mut HashMap<Coordinate<i32>, char>, instruction: &Coordinate<
     let guy = grid.iter().find(|(_, char)| **char == '@').unwrap().0;
     let mut fingers: Vec<Coordinate<i32>> = vec![guy.clone()];
     let mut to_move: Vec<Coordinate<i32>> = vec![];
-    let mut i = 10;
     'scan: loop {
-        i -= 1;
-        if i < 0 {
-            break;
-        };
         let mut new_fingers = HashSet::new();
         let mut drop_columns: Vec<Coordinate<i32>> = vec![];
         for finger in &mut fingers {
@@ -206,17 +201,9 @@ fn broken(map: &HashMap<Coordinate<i32>, char>) -> bool {
 fn part2(data: &str) -> u32 {
     let (small_map, prog) = parse_data(data);
     let mut map = double_map(&small_map);
-    let mut counter = 0;
     for instruction in prog {
-        counter += 1;
-        print_grid(&map);
-        if counter >= 2270 {
-            pause();
-        }
+        //        print_grid(&map);
         move_guy(&mut map, &instruction);
-        // if broken(&map) {
-        //     panic!("map broken at {counter}.");
-        // }
     }
     score(map)
 }
