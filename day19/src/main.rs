@@ -60,6 +60,36 @@ fn part1(data: &str) -> u32 {
         .sum::<u32>()
 }
 
+// tried this but crazy slow, 8s vs 4ms.
+
+// fn combine_patterns(patterns: &HashSet<String>, towel: &String) -> HashSet<String> {
+//     let mut new_patterns = HashSet::new();
+//     for pattern in patterns {
+//         new_patterns.insert(format!("{}{}", pattern, towel));
+//     }
+//     new_patterns
+// }
+
+// #[time_function]
+// fn part2(data: &str) -> usize {
+//     let (patterns, towels) = parse_input2(data);
+//     towels
+//         .par_iter()
+//         .map(|towel| {
+//             count_paths(
+//                 String::new(),
+//                 |t: &String| {
+//                     combine_patterns(&patterns, t)
+//                         .into_iter()
+//                         .filter(|new| towel.contains(new))
+//                         .collect::<Vec<String>>()
+//                 },
+//                 |t: &String| t == towel,
+//             )
+//         })
+//         .sum::<usize>()
+// }
+
 #[time_function]
 fn part2(data: &str) -> u64 {
     let (patterns, towels) = parse_input2(data);
