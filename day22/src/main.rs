@@ -28,6 +28,20 @@ fn part1(data: &str) -> i64 {
 // memoize takes 332s to get the same answer!
 // let's go the other way...
 
+// 100ms saved on 200ms total budget by creating a bitfield
+// rather than a vec!
+fn diff_bitfield(a: i64, b: i64, c: i64, d: i64) -> u32 {
+    let a: i8 = a.try_into().expect("overflow");
+    let b: i8 = b.try_into().expect("overflow");
+    let c: i8 = c.try_into().expect("overflow");
+    let d: i8 = d.try_into().expect("overflow");
+    let a = (a & 0b11111) as u32;
+    let b = (b & 0b11111) as u32;
+    let c = (c & 0b11111) as u32;
+    let d = (d & 0b11111) as u32;
+    (a << 15) | (b << 10) | (c << 5) | d
+}
+
 #[time_function]
 fn part2(data: &str) -> i64 {
     let data: Vec<i64> = data
@@ -39,19 +53,19 @@ fn part2(data: &str) -> i64 {
         let monkey: Vec<i64> = successors(Some(monkey), next).take(2000).collect();
         let mut seen = HashSet::new();
         for window in monkey.windows(5) {
-            let diffs = vec![
+            let diffs = diff_bitfield(
                 window[1] % 10 - window[0] % 10,
                 window[2] % 10 - window[1] % 10,
                 window[3] % 10 - window[2] % 10,
                 window[4] % 10 - window[3] % 10,
-            ];
+            );
             if seen.contains(&diffs) {
                 continue;
             }
-            seen.insert(diffs.clone());
+            seen.insert(diffs);
             let price = window[4] % 10;
             market
-                .entry(diffs.clone())
+                .entry(diffs)
                 .and_modify(|n| *n += price)
                 .or_insert(price);
         }
