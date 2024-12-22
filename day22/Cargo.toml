@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 aochelpers = "0.7.1"
+dashmap = "6.1.0"
 memoize = "0.4.2"
 rayon = "1.10.0"
 

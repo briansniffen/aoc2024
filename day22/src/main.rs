@@ -1,7 +1,8 @@
 use aochelpers::get_daily_input;
 use code_timing_macros::time_function;
-//use rayon::prelude::*;
-use std::collections::{HashMap, HashSet, VecDeque};
+use dashmap::DashMap;
+use rayon::prelude::*;
+use std::collections::HashSet;
 use std::error::Error;
 
 fn next(i: i64) -> i64 {
@@ -48,8 +49,8 @@ fn part2(data: &str) -> i64 {
         .lines()
         .map(|line| line.parse::<i64>().expect("parse input"))
         .collect();
-    let mut market = HashMap::new();
-    for monkey in data.into_iter() {
+    let market = DashMap::new();
+    data.into_par_iter().for_each(|monkey| {
         let monkey = many_vec(monkey, 2000);
         let mut seen = HashSet::new();
         for window in monkey.windows(5) {
@@ -69,8 +70,8 @@ fn part2(data: &str) -> i64 {
                 .and_modify(|n| *n += price)
                 .or_insert(price);
         }
-    }
-    *market.values().max().expect("some max")
+    });
+    *market.into_read_only().values().max().expect("some max")
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
