@@ -4,37 +4,21 @@ use dashmap::DashMap;
 use rayon::prelude::*;
 use std::collections::HashSet;
 use std::error::Error;
+use std::iter::successors;
 
-fn next(i: i64) -> i64 {
-    let i = ((i << 6) ^ i) % 16777216;
-    let i = ((i >> 5) ^ i) % 16777216;
-    let i = ((i << 11) ^ i) % 16777216;
-    i
-}
-
-fn many(i: i64, n: i64) -> i64 {
-    let mut ans = i;
-    for _j in 0..n {
-        ans = next(ans);
-    }
-    ans
-}
-
-fn many_vec(i: i64, n: i64) -> Vec<i64> {
-    let mut ans = Vec::new();
-    let mut i = i;
-    for _j in 0..n {
-        ans.push(i);
-        i = next(i);
-    }
-    ans
+fn next(i: &i64) -> Option<i64> {
+    let i = ((i << 06) ^ i) % 0x100_0000;
+    let i = ((i >> 05) ^ i) % 0x100_0000;
+    let i = ((i << 11) ^ i) % 0x100_0000;
+    Some(i)
 }
 
 #[time_function]
 fn part1(data: &str) -> i64 {
     let mut ans = 0;
     for line in data.lines() {
-        ans += many(line.parse::<i64>().expect("parse input"), 2000);
+        let mut monkey = successors(line.parse::<i64>().ok(), next).skip(2000);
+        ans += monkey.next().expect("infinite monkey");
     }
     ans
 }
@@ -42,6 +26,7 @@ fn part1(data: &str) -> i64 {
 // first, brute force approach:
 // bounded to -3..=3, we get 1504 in 185s.
 // memoize takes 332s to get the same answer!
+// let's go the other way...
 
 #[time_function]
 fn part2(data: &str) -> i64 {
@@ -51,7 +36,7 @@ fn part2(data: &str) -> i64 {
         .collect();
     let market = DashMap::new();
     data.into_par_iter().for_each(|monkey| {
-        let monkey = many_vec(monkey, 2000);
+        let monkey: Vec<i64> = successors(Some(monkey), next).take(2000).collect();
         let mut seen = HashSet::new();
         for window in monkey.windows(5) {
             let diffs = vec![
