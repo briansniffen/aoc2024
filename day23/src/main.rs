@@ -3,7 +3,8 @@ use code_timing_macros::time_function;
 //use rayon::prelude::*;
 use std::error::Error;
 use std::collections::{HashMap,HashSet};
-use pathfinding::prelude::connected_components;
+// use std::hash::Hash;
+// use std::ops::BitAnd;
 
 fn any_initial_t(abc:&(String,String,String)) -> bool {
     let (a,b,c) = abc;
@@ -32,6 +33,50 @@ fn part1(data: &str) -> usize {
     clusters.into_iter().filter(any_initial_t).count()
 }
 
+/*  implement BK:
+ algorithm BronKerbosch2(R, P, X) is
+if P and X are both empty then
+report R as a maximal clique
+choose a pivot vertex u in P ⋃ X
+for each vertex v in P \ N(u) do
+    BronKerbosch2(R ⋃ {v}, P ⋂ N(v), X ⋂ N(v))
+    P := P \ {v}
+    X := X ⋃ {v}
+*/
+
+fn bronkerbosch<FT>(r: &HashSet<String>, p: &HashSet<String>, x: &HashSet<String>, neighbors: &FT) -> Vec<HashSet<String>>
+where 
+    FT: Fn(&String) -> HashSet<String>,
+{
+    if p.len()==0 && x.len()==0 {
+        return vec![r.clone()];
+    }
+    let mut results=Vec::new();
+    let p_iter : Vec<String> = p.iter().cloned().collect();
+    let mut p = p.clone();
+    let mut x = x.clone();
+    // choose a pivot u , and separate p into p-n(u) and p|n(v)
+    for v in p_iter {
+        let mut r = r.clone(); r.insert(v.clone());
+        let ns = neighbors(&v);
+        let mut intermediate = bronkerbosch(&r, &(&p & &ns), &(&x & &ns), &neighbors);
+        results.append(&mut intermediate);
+        p.remove(&v);
+        x.insert(v);
+    }
+    results
+}
+
+fn cliques(graph: &HashMap<String,HashSet<String>>) -> Vec<HashSet<String>> {
+    let nodes : HashSet<String> = graph.keys().cloned().collect();
+    bronkerbosch(&HashSet::new(), &nodes, &HashSet::new(), |s| {
+        match graph.get(s) {
+            Some(ns) => ns.clone(),
+            None => HashSet::new(),
+        }
+    })
+}
+
 #[time_function]
 fn part2(data: &str) -> String {
     let mut net: HashMap<String,HashSet<String>> = HashMap::new();
@@ -40,9 +85,10 @@ fn part2(data: &str) -> String {
         net.entry(a.to_string()).or_insert(HashSet::new()).insert(b.to_string());
         net.entry(b.to_string()).or_insert(HashSet::new()).insert(a.to_string());
     }
-    let computers: Vec<String> = net.keys().map(|x| x.to_string()).collect();
+//    let computers: Vec<String> = net.keys().map(|x| x.to_string()).collect();
     // FIXME finds the entire connected subset rather than tightly connected
-    let mut subnets: Vec<HashSet<String>> = connected_components(&computers, |a:&String| net.get(a).unwrap().clone());
+//    let mut subnets: Vec<HashSet<String>> = connected_components(&computers, |a:&String| net.get(a).unwrap().clone());
+    let mut subnets = cliques(&net);
     subnets.sort_by_key(|x| x.len());
     for subnet in &subnets {
         println!("{:?}", subnet);
