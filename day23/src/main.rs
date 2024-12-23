@@ -1,34 +1,42 @@
 use aochelpers::get_daily_input;
 use code_timing_macros::time_function;
 //use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::collections::{HashMap,HashSet};
 // use std::hash::Hash;
 // use std::ops::BitAnd;
 
-fn any_initial_t(abc:&(String,String,String)) -> bool {
-    let (a,b,c) = abc;
+fn any_initial_t(abc: &(String, String, String)) -> bool {
+    let (a, b, c) = abc;
     a.starts_with('t') || b.starts_with('t') || c.starts_with('t')
 }
 
 #[time_function]
 fn part1(data: &str) -> usize {
-    let mut net: HashMap<String,HashSet<String>> = HashMap::new();
-    let mut clusters: HashSet<(String,String,String)> = HashSet::new();
+    let mut net: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut clusters: HashSet<(String, String, String)> = HashSet::new();
     for line in data.lines() {
-        let (a,b) = line.split_once('-').expect("network connection");
-        match (net.get(a),net.get(b)) {
-            (Some(a_net),Some(b_net)) => {
+        let (a, b) = line.split_once('-').expect("network connection");
+        match (net.get(a), net.get(b)) {
+            (Some(a_net), Some(b_net)) => {
                 for c in a_net.intersection(b_net) {
-                    let mut cluster = vec![a,b,c];
+                    let mut cluster = vec![a, b, c];
                     cluster.sort();
-                    clusters.insert((cluster[0].to_string(),cluster[1].to_string(),cluster[2].to_string()));
+                    clusters.insert((
+                        cluster[0].to_string(),
+                        cluster[1].to_string(),
+                        cluster[2].to_string(),
+                    ));
                 }
             }
             _ => {}
         }
-        net.entry(a.to_string()).or_insert(HashSet::new()).insert(b.to_string());
-        net.entry(b.to_string()).or_insert(HashSet::new()).insert(a.to_string());
+        net.entry(a.to_string())
+            .or_insert(HashSet::new())
+            .insert(b.to_string());
+        net.entry(b.to_string())
+            .or_insert(HashSet::new())
+            .insert(a.to_string());
     }
     clusters.into_iter().filter(any_initial_t).count()
 }
@@ -44,22 +52,28 @@ for each vertex v in P \ N(u) do
     X := X ⋃ {v}
 */
 
-fn bronkerbosch<FT>(r: &HashSet<String>, p: &HashSet<String>, x: &HashSet<String>, neighbors: &FT) -> Vec<HashSet<String>>
-where 
-    FT: Fn(&String) -> HashSet<String>,
+fn bronkerbosch<'a, FT>(
+    r: &HashSet<String>,
+    p: &HashSet<String>,
+    x: &HashSet<String>,
+    neighbors: &'a FT,
+) -> Vec<HashSet<String>>
+where
+    FT: Fn(&String) -> HashSet<String> + 'a,
 {
-    if p.len()==0 && x.len()==0 {
+    if p.is_empty() && x.is_empty() {
         return vec![r.clone()];
     }
-    let mut results=Vec::new();
-    let p_iter : Vec<String> = p.iter().cloned().collect();
+    let mut results = Vec::new();
+    let p_iter: Vec<String> = p.iter().cloned().collect();
     let mut p = p.clone();
     let mut x = x.clone();
-    // choose a pivot u , and separate p into p-n(u) and p|n(v)
+    // FIXME choose a pivot u , and separate p into p-n(u) and p|n(v)
     for v in p_iter {
-        let mut r = r.clone(); r.insert(v.clone());
+        let mut r = r.clone();
+        r.insert(v.clone());
         let ns = neighbors(&v);
-        let mut intermediate = bronkerbosch(&r, &(&p & &ns), &(&x & &ns), &neighbors);
+        let mut intermediate = bronkerbosch(&r, &(&p & &ns), &(&x & &ns), neighbors);
         results.append(&mut intermediate);
         p.remove(&v);
         x.insert(v);
@@ -67,33 +81,31 @@ where
     results
 }
 
-fn cliques(graph: &HashMap<String,HashSet<String>>) -> Vec<HashSet<String>> {
-    let nodes : HashSet<String> = graph.keys().cloned().collect();
-    bronkerbosch(&HashSet::new(), &nodes, &HashSet::new(), |s| {
-        match graph.get(s) {
-            Some(ns) => ns.clone(),
-            None => HashSet::new(),
-        }
-    })
+fn cliques(graph: &HashMap<String, HashSet<String>>) -> Vec<HashSet<String>> {
+    let nodes: HashSet<String> = graph.keys().cloned().collect();
+    let neighbors = |s: &String| match graph.get(s) {
+        Some(ns) => ns.clone(),
+        None => HashSet::new(),
+    };
+    bronkerbosch(&HashSet::new(), &nodes, &HashSet::new(), &neighbors)
 }
 
 #[time_function]
 fn part2(data: &str) -> String {
-    let mut net: HashMap<String,HashSet<String>> = HashMap::new();
+    let mut net: HashMap<String, HashSet<String>> = HashMap::new();
     for line in data.lines() {
-        let (a,b) = line.split_once('-').expect("network connection");
-        net.entry(a.to_string()).or_insert(HashSet::new()).insert(b.to_string());
-        net.entry(b.to_string()).or_insert(HashSet::new()).insert(a.to_string());
+        let (a, b) = line.split_once('-').expect("network connection");
+        net.entry(a.to_string())
+            .or_insert(HashSet::new())
+            .insert(b.to_string());
+        net.entry(b.to_string())
+            .or_insert(HashSet::new())
+            .insert(a.to_string());
     }
-//    let computers: Vec<String> = net.keys().map(|x| x.to_string()).collect();
-    // FIXME finds the entire connected subset rather than tightly connected
-//    let mut subnets: Vec<HashSet<String>> = connected_components(&computers, |a:&String| net.get(a).unwrap().clone());
     let mut subnets = cliques(&net);
     subnets.sort_by_key(|x| x.len());
-    for subnet in &subnets {
-        println!("{:?}", subnet);
-    }
-    let mut names : Vec<String> = subnets[0].clone().into_iter().collect();
+    subnets.reverse();
+    let mut names: Vec<String> = subnets[0].clone().into_iter().collect();
     names.sort();
     names.join(",").to_string()
 }
