@@ -65,17 +65,31 @@ where
         return vec![r.clone()];
     }
     let mut results = Vec::new();
-    let p_iter: Vec<String> = p.iter().cloned().collect();
-    let mut p = p.clone();
-    let mut x = x.clone();
-    // FIXME choose a pivot u , and separate p into p-n(u) and p|n(v)
-    for v in p_iter {
-        let mut r = r.clone();
-        r.insert(v.clone());
+
+    // Choose pivot u from P ∪ X with the most neighbors in P
+    let pivot = p
+        .iter()
+        .chain(x.iter())
+        .max_by_key(|&v| neighbors(v).intersection(p).count())
+        .cloned();
+
+    let p_minus_n_u = if let Some(u) = pivot {
+        p.difference(&neighbors(&u)).cloned().collect::<Vec<_>>()
+    } else {
+        p.iter().cloned().collect::<Vec<_>>()
+    };
+
+    for v in p_minus_n_u {
+        let mut r_new = r.clone();
+        r_new.insert(v.clone());
         let ns = neighbors(&v);
-        let mut intermediate = bronkerbosch(&r, &(&p & &ns), &(&x & &ns), neighbors);
+        let p_new: HashSet<_> = p.intersection(&ns).cloned().collect();
+        let x_new: HashSet<_> = x.intersection(&ns).cloned().collect();
+        let mut intermediate = bronkerbosch(&r_new, &p_new, &x_new, neighbors);
         results.append(&mut intermediate);
+        let mut p = p.clone();
         p.remove(&v);
+        let mut x = x.clone();
         x.insert(v);
     }
     results
