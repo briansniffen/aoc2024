@@ -3,7 +3,7 @@ use code_timing_macros::time_function;
 //use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-// use std::hash::Hash;
+use std::hash::Hash;
 // use std::ops::BitAnd;
 
 fn any_initial_t(abc: &(String, String, String)) -> bool {
@@ -52,14 +52,15 @@ for each vertex v in P \ N(u) do
     X := X ⋃ {v}
 */
 
-fn bronkerbosch<'a, FT>(
-    r: &HashSet<String>,
-    p: &HashSet<String>,
-    x: &HashSet<String>,
+fn bronkerbosch<'a, T, FT>(
+    r: &HashSet<T>,
+    p: &HashSet<T>,
+    x: &HashSet<T>,
     neighbors: &'a FT,
-) -> Vec<HashSet<String>>
+) -> Vec<HashSet<T>>
 where
-    FT: Fn(&String) -> HashSet<String> + 'a,
+    T: Hash + Clone + Eq,
+    FT: Fn(&T) -> HashSet<T> + 'a,
 {
     if p.is_empty() && x.is_empty() {
         return vec![r.clone()];
