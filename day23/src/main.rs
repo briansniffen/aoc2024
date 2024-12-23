@@ -5,37 +5,29 @@ use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::hash::Hash;
 
-fn any_initial_t(abc: &(String, String, String)) -> bool {
+fn any_initial_t(abc: &(&str, &str, &str)) -> bool {
     let (a, b, c) = abc;
     a.starts_with('t') || b.starts_with('t') || c.starts_with('t')
 }
 
 #[time_function]
 fn part1(data: &str) -> usize {
-    let mut net: HashMap<_, HashSet<String>> = HashMap::new();
+    let mut net: HashMap<&str, HashSet<&str>> = HashMap::new();
     let mut clusters = HashSet::new();
     for line in data.lines() {
         let (a, b) = line.split_once('-').expect("network connection");
         match (net.get(a), net.get(b)) {
             (Some(a_net), Some(b_net)) => {
                 for c in a_net.intersection(b_net) {
-                    let mut cluster = vec![a, b, c];
-                    cluster.sort();
-                    clusters.insert((
-                        cluster[0].to_string(),
-                        cluster[1].to_string(),
-                        cluster[2].to_string(),
-                    ));
+                    let mut cluster = [a, b, c];
+                    cluster.sort_unstable();
+                    clusters.insert((cluster[0], cluster[1], cluster[2]));
                 }
             }
             _ => {}
         }
-        net.entry(a.to_string())
-            .or_insert(HashSet::new())
-            .insert(b.to_string());
-        net.entry(b.to_string())
-            .or_insert(HashSet::new())
-            .insert(a.to_string());
+        net.entry(a).or_insert(HashSet::new()).insert(b);
+        net.entry(b).or_insert(HashSet::new()).insert(a);
     }
     clusters.into_iter().filter(any_initial_t).count()
 }
@@ -111,12 +103,8 @@ fn part2(data: &str) -> String {
     let mut net = HashMap::new();
     for line in data.lines() {
         let (a, b) = line.split_once('-').expect("network connection");
-        net.entry(a.to_string())
-            .or_insert(HashSet::new())
-            .insert(b.to_string());
-        net.entry(b.to_string())
-            .or_insert(HashSet::new())
-            .insert(a.to_string());
+        net.entry(a).or_insert(HashSet::new()).insert(b);
+        net.entry(b).or_insert(HashSet::new()).insert(a);
     }
     let mut subnets = cliques(&net);
     subnets.sort_by_key(|x| x.len());

@@ -280,27 +280,27 @@ fn simulate(a: u64) -> Vec<u64> {
     out
 }
 
-fn simulate_check(a: u64, target: &Vec<u64>) -> bool {
-    let mut a: u64 = a;
-    let mut b: u64 = 0;
-    let mut c: u64 = 0;
-    let mut i: usize = 0;
+// fn simulate_check(a: u64, target: &Vec<u64>) -> bool {
+//     let mut a: u64 = a;
+//     let mut b: u64 = 0;
+//     let mut c: u64 = 0;
+//     let mut i: usize = 0;
 
-    while a != 0 {
-        b = a & 7;
-        b ^= 7;
-        c = a >> b;
-        b ^= 7;
-        b ^= c;
-        a = a >> 3;
-        if (b & 7) == target[i] {
-            i += 1;
-        } else {
-            return false;
-        }
-    }
-    i == target.len()
-}
+//     while a != 0 {
+//         b = a & 7;
+//         b ^= 7;
+//         c = a >> b;
+//         b ^= 7;
+//         b ^= c;
+//         a = a >> 3;
+//         if (b & 7) == target[i] {
+//             i += 1;
+//         } else {
+//             return false;
+//         }
+//     }
+//     i == target.len()
+// }
 
 #[time_function]
 fn part2(data: &str) -> u64 {
@@ -345,10 +345,11 @@ fn search(goal: &Vec<u64>, initial_seed: u64, j: usize) -> Result<u64, String> {
     while let Some(Reverse(candidate)) = candidates.pop() {
         let out = simulate(candidate);
         if out == *goal {
-            println!("Found seed: {} (0o{:o})", candidate, candidate);
+            //            println!("Found seed: {} (0o{:o})", candidate, candidate);
+            return Ok(candidate);
         }
         if out == goal[goal.len() - out.len()..] {
-            println!("Found intermediate seed: {:o}", candidate);
+            // println!("Found intermediate seed: {:o}", candidate);
             for i in 0..8 {
                 candidates.push(Reverse((candidate << 3) + i));
             }
@@ -359,10 +360,10 @@ fn search(goal: &Vec<u64>, initial_seed: u64, j: usize) -> Result<u64, String> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let data = get_daily_input(17, 2024)?;
-    let prog = parse_input(&data).unwrap().1;
-    println!("## Program ##\n{}", prog);
-    println!("\n## Disassembly ##\n");
-    prog.disassemble();
+    // let prog = parse_input(&data).unwrap().1;
+    // println!("## Program ##\n{}", prog);
+    // println!("\n## Disassembly ##\n");
+    // prog.disassemble();
     println!("\n## Part I ##\n{}", part1(&data));
     println!("\n##Part II ##\n{}", part2(&data));
     Ok(())
