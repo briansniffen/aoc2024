@@ -4,7 +4,6 @@ use code_timing_macros::time_function;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::hash::Hash;
-// use std::ops::BitAnd;
 
 fn any_initial_t(abc: &(String, String, String)) -> bool {
     let (a, b, c) = abc;
@@ -13,8 +12,8 @@ fn any_initial_t(abc: &(String, String, String)) -> bool {
 
 #[time_function]
 fn part1(data: &str) -> usize {
-    let mut net: HashMap<String, HashSet<String>> = HashMap::new();
-    let mut clusters: HashSet<(String, String, String)> = HashSet::new();
+    let mut net: HashMap<_, HashSet<String>> = HashMap::new();
+    let mut clusters = HashSet::new();
     for line in data.lines() {
         let (a, b) = line.split_once('-').expect("network connection");
         match (net.get(a), net.get(b)) {
@@ -41,15 +40,15 @@ fn part1(data: &str) -> usize {
     clusters.into_iter().filter(any_initial_t).count()
 }
 
-/*  implement BK:
- algorithm BronKerbosch2(R, P, X) is
-if P and X are both empty then
-report R as a maximal clique
-choose a pivot vertex u in P ⋃ X
-for each vertex v in P \ N(u) do
-    BronKerbosch2(R ⋃ {v}, P ⋂ N(v), X ⋂ N(v))
-    P := P \ {v}
-    X := X ⋃ {v}
+/*  implement Bron-Kerbosch with pivots, according to Wikipedia:
+algorithm BronKerbosch2(R, P, X) is
+    if P and X are both empty then
+    report (yield) R as a maximal clique
+    choose a pivot vertex u in P ⋃ X
+    for each vertex v in P \ N(u) do
+        BronKerbosch2(R ⋃ {v}, P ⋂ N(v), X ⋂ N(v))
+        P := P \ {v}
+        X := X ⋃ {v}
 */
 
 fn bronkerbosch<'a, T, FT>(
@@ -79,7 +78,8 @@ where
     } else {
         p.iter().cloned().collect::<Vec<_>>()
     };
-
+    let mut p = p.clone();
+    let mut x = x.clone();
     for v in p_minus_n_u {
         let mut r_new = r.clone();
         r_new.insert(v.clone());
@@ -88,17 +88,18 @@ where
         let x_new: HashSet<_> = x.intersection(&ns).cloned().collect();
         let mut intermediate = bronkerbosch(&r_new, &p_new, &x_new, neighbors);
         results.append(&mut intermediate);
-        let mut p = p.clone();
         p.remove(&v);
-        let mut x = x.clone();
         x.insert(v);
     }
     results
 }
 
-fn cliques(graph: &HashMap<String, HashSet<String>>) -> Vec<HashSet<String>> {
-    let nodes: HashSet<String> = graph.keys().cloned().collect();
-    let neighbors = |s: &String| match graph.get(s) {
+fn cliques<T>(graph: &HashMap<T, HashSet<T>>) -> Vec<HashSet<T>>
+where
+    T: Hash + Clone + Eq,
+{
+    let nodes: HashSet<T> = graph.keys().cloned().collect();
+    let neighbors = |s: &T| match graph.get(s) {
         Some(ns) => ns.clone(),
         None => HashSet::new(),
     };
@@ -107,7 +108,7 @@ fn cliques(graph: &HashMap<String, HashSet<String>>) -> Vec<HashSet<String>> {
 
 #[time_function]
 fn part2(data: &str) -> String {
-    let mut net: HashMap<String, HashSet<String>> = HashMap::new();
+    let mut net = HashMap::new();
     for line in data.lines() {
         let (a, b) = line.split_once('-').expect("network connection");
         net.entry(a.to_string())
@@ -120,7 +121,7 @@ fn part2(data: &str) -> String {
     let mut subnets = cliques(&net);
     subnets.sort_by_key(|x| x.len());
     subnets.reverse();
-    let mut names: Vec<String> = subnets[0].clone().into_iter().collect();
+    let mut names: Vec<_> = subnets[0].clone().into_iter().collect();
     names.sort();
     names.join(",").to_string()
 }
