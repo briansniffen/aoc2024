@@ -186,11 +186,11 @@ fn part2(data: &str) -> String {
     // then that xor is the z,
     // and the and gets or'd with the first-tier end to be the carry_out
     /*
-    x01 XOR y01 -> int1 // sqr
-    x01 AND y01 -> int2 // kqf
-    int1 XOR c00 -> z01 // mwk SWAP
-    int1 AND c00 -> int3 //kgd and mwq is the c09
-    int3 OR int2 -> c01 // z10 SWAP
+    x01 XOR y01 -> int1
+    x01 AND y01 -> int2
+    int1 XOR c00 -> z01
+    int1 AND c00 -> int3
+    int3 OR int2 -> c01
      */
     for i in 0..z_max {
         // z_max is correctly an OR, not XOR
@@ -224,12 +224,11 @@ fn part2(data: &str) -> String {
 
     /*
     I found this by screwing around with lines 258-300, and seeing where it panicked.  It would be nice to clean this up
-    and find them mechanically!  Also, something is FIXME-level broken with carry inputs, because they don't get set right
-    by the swaps above.
+    and find them mechanically!
     */
-    answer.push("hsw".to_string());
-    answer.push("jmh".to_string());
-    env.swap("hsw", "jmh");
+    //answer.push("hsw".to_string());
+    //answer.push("jmh".to_string());
+    //env.swap("hsw", "jmh");
 
     for i in 0..z_max {
         let mut env = env.clone();
@@ -251,29 +250,44 @@ fn part2(data: &str) -> String {
             let int2 = env
                 .find3(Op::And, &x, &y)
                 .expect("gotta be in here somewhere");
-            let should_be_and = env.find2(Op::And, &int1).expect(&format!(
-                "gotta be in here somewhere; {int1} looking for AND"
-            ));
-            // if int1 == "hsw" {
-            //     answer.push("hsw".to_string());
-            //     continue;
-            // }
-            let should_be_z = env.find2(Op::Xor, &int1).expect(&format!(
-                "gotta be in here somewhere; {int1} looking for {z}"
-            ));
-            // should_be_or is the carry_out of x+y=z
-            let should_be_or = env.find3(Op::Or, &int2, &should_be_and).expect(&format!(
-                "gotta be in here somewhere; {int2} looking for OR"
-            ));
-            // find carry_in of z1 and swap
-            assert_eq!(z, should_be_z);
-
-            // for j in 0..=z_max {
-            //     let z = format!("z{j:02}");
-            //     println!("z{j} is {}", env.clone().eval(&z));
-            // }
-            // z1 itself isn't part of the answer; it's the carry bits upstream of it
-            //            answer.push(z1);
+            if let Some(should_be_and) = env.find2(Op::And, &int1) {
+                if let Some(should_be_or) = env.find3(Op::Or, &int2, &should_be_and) {
+                } else {
+                    answer.push(int2);
+                }
+                let should_be_z = env.find2(Op::Xor, &int1).expect(&format!(
+                    "gotta be in here somewhere; {int1} looking for {z}"
+                ));
+                assert_eq!(z, should_be_z);
+            } else {
+                answer.push(int1.to_string());
+                // the first XOR gate is miswired!
+                // but it's NOT the carry bit (OR) or the other XOR.
+                // So it's swapped with one of the two ANDs.
+                // …one of these is easier to find than the other.
+                // So let's test that here (knowing in advance it solves the problem)
+                let mut env_test = env.clone();
+                env_test.swap(&int1, &int2);
+                for i in 0..z_max {
+                    let mut env = env_test.clone();
+                    for j in 0..=z_max {
+                        let x = format!("x{j:02}");
+                        let y = format!("y{j:02}");
+                        env.env.insert(x, Val(i == j));
+                        env.env.insert(y, Val(i == j));
+                    }
+                    let z1 = format!("z{:02}", i + 1);
+                    let mut good_enough = true;
+                    if !env.eval(&z1) {
+                        println!("{} is missing a carry input", z1);
+                        good_enough = false;
+                    }
+                    if good_enough {
+                        answer.push(int2.to_string());
+                        break;
+                    }
+                }
+            }
         }
     }
     answer.sort();
