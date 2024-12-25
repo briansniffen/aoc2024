@@ -85,40 +85,12 @@ impl Env {
         }
     }
     fn swap(&mut self, a: &str, b: &str) {
-        let mut new_env = HashMap::new();
-        for (k, v) in self.env.iter() {
-            match v {
-                Val(_) => {
-                    new_env.insert(k.clone(), v.clone());
-                }
-                Gate { op, a: a1, b: b1 } => {
-                    let a1 = if a1 == a {
-                        b
-                    } else if a1 == b {
-                        a
-                    } else {
-                        a1
-                    };
-                    let b1 = if b1 == a {
-                        b
-                    } else if b1 == b {
-                        a
-                    } else {
-                        b1
-                    };
-                    new_env.insert(
-                        k.clone(),
-                        Gate {
-                            op: *op,
-                            a: a1.to_string(),
-                            b: b1.to_string(),
-                        },
-                    );
-                }
-            };
-        }
-        self.env = new_env;
+        let old_a = self.env[a].clone();
+        let old_b = self.env[b].clone();
+        self.env.insert(a.to_string(), old_b);
+        self.env.insert(b.to_string(), old_a);
     }
+
     fn find3(&self, op: Op, a: &str, b: &str) -> Option<String> {
         for (k, v) in self.env.iter() {
             if let Gate {
@@ -249,9 +221,16 @@ fn part2(data: &str) -> String {
     }
     // uh, I guess now we strobe a pair of 1s from low to high input bits &
     // look for bad carry?
+
+    /*
+    I found this by screwing around with lines 258-300, and seeing where it panicked.  It would be nice to clean this up
+    and find them mechanically!  Also, something is FIXME-level broken with carry inputs, because they don't get set right
+    by the swaps above.
+    */
     answer.push("hsw".to_string());
     answer.push("jmh".to_string());
     env.swap("hsw", "jmh");
+
     for i in 0..z_max {
         let mut env = env.clone();
         for j in 0..=z_max {

@@ -107,6 +107,32 @@ fn on_path_to_repeat(map: &Map) -> bool {
     }
 }
 
+fn on_path_to_repeat_except(map: &Map, except: Coordinate<i32>) -> bool {
+    let mut loc = map.start;
+    let mut dir = START_DIR;
+    let mut visited = HashSet::new();
+
+    loop {
+        if visited.contains(&(loc, dir)) {
+            return true;
+        }
+        visited.insert((loc, dir));
+        let next = loc + dir;
+        match map.grid.get(&next) {
+            None => return false,
+            Some(c) if c == &'#' || next == except => {
+                while map.grid.get(&(loc + dir)) == Some(&'#') || (loc + dir) == except {
+                    dir = rotate_dir(dir);
+                }
+                loc = loc + dir;
+            }
+            Some(_) => {
+                loc = next;
+            }
+        }
+    }
+}
+
 // fn print_loop(
 //     map: &Map,
 //     visited: &HashSet<(Coordinate<i32>, Coordinate<i32>)>,
@@ -165,13 +191,11 @@ fn plausible_blocks(map: &Map) -> HashSet<Coordinate<i32>> {
     visited
         .par_iter()
         .flat_map(|&loc| {
-            let mut candidates = HashSet::new();
-            let mut map = map.clone();
-            map.grid.entry(loc).and_modify(|c| *c = '#');
-            if on_path_to_repeat(&map) {
-                candidates.insert(loc);
+            if on_path_to_repeat_except(&map, loc) {
+                Some(loc)
+            } else {
+                None
             }
-            candidates
         })
         .collect()
 }

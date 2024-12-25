@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 aochelpers = "0.7.1"
 rayon = "1.10.0"
+thread_local = "1.1.8"
 
 [dependencies.code-timing-macros]
 version = "0.0.5"
